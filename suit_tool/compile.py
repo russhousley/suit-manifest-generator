@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # ----------------------------------------------------------------------------
 # Copyright 2019 ARM Limited or its affiliates
@@ -243,9 +243,9 @@ def compile_manifest(options, m):
         if any(['loadable' in c for c in choices]):
             # Generate image load section
             LoadParams = {
-                'install-id' : lambda cid, data : ('source-component', c['install-id']),
-                'load-digest' : ('image-digest', c.get('load-digest', c['install-digest'])),
-                'load-size' : ('image-size', c.get('load-size', c['install-size']))
+                'install-id'  : lambda cid, data : ('source-component', c['install-id']),
+                'load-digest' : lambda cid, data : ('image-digest', c.get('load-digest', c['install-digest'])),
+                'load-size'   : lambda cid, data : ('image-size', c.get('load-size', c['install-size'])),
             }
             if 'compression-info' in c and c.get('decompress-on-load', False):
                 LoadParams['compression-info'] = lambda cid, data: ('compression-info', c['compression-info'])

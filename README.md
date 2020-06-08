@@ -144,6 +144,8 @@ The `suit-tool` supports three sub-commands:
 * `create` generates a new manifest.
 * `sign` signs a manifest.
 * `parse` parses an existing manifest into cbor-debug or a json representation.
+* `keygen` Create a signing key. Not for production use.
+* `pubkey` Get the public key for a supplied private key.
 
 The `suit-tool` has a configurable log level, specified with `-l`:
 
@@ -207,3 +209,38 @@ suit-tool parse -m MANIFEST
 ```
 
 If a json-representation is needed, add the '-j' flag.
+
+
+## Keygen
+
+Create an asymmetric keypair for non-production use. Production systems should use closely guarded keys, such as keys stored in an HSM.
+
+```sh
+ suit-tool keygen [-t TYPE] -o KEYFILE
+ ```
+
+`suit-tool keygen` defaults to creating SECP256r1 keys. To create another type of key, use `-t`followed by one of:
+
+* `secp256r1`
+* `secp384r1`
+* `secp521r1`
+* `ed25519`
+* `hss-lms`
+
+## Pubkey
+
+Derive a public key from the supplied private key.
+
+```sh
+suit-tool pubkey [-t TYPE] -k FILE
+```
+
+Prints the public key.
+
+`suit-tool pubkey` uses SECP256r1 keys by default. To print another type of key, use `-t`followed by one of:
+
+* `secp256r1`
+* `secp384r1`
+* `secp521r1`
+* `ed25519`
+* `hss-lms`

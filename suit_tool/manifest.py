@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # ----------------------------------------------------------------------------
 # Copyright 2019 ARM Limited or its affiliates
@@ -246,6 +246,7 @@ class SUITManifestArray:
         s += ' ,\n'.join([newindent + v.to_debug(newindent) for v in self.items])
         s += '\n' + indent + ']'
         return s
+
 class SUITBytes:
     def to_json(self):
         return binascii.b2a_hex(self.v).decode('utf-8')
@@ -271,7 +272,6 @@ class SUITUUID(SUITBytes):
         return self
     def to_debug(self, indent):
         return 'h\'' + self.to_json() + '\' / ' + str(uuid.UUID(bytes=self.v)) + ' /'
-
 
 class SUITRaw:
     def to_json(self):
@@ -336,7 +336,6 @@ class SUITComponentIndex(SUITComponentId):
             dbg=''.join([v.to_debug(newindent) for v in self.items])
         )
         return s
-
 
 class SUITComponents(SUITManifestArray):
     field = collections.namedtuple('ArrayElement', 'obj')(obj=SUITComponentId)
@@ -427,7 +426,6 @@ def SUITCommandContainer(jkey, skey, argtype):
             s += self.arg.to_debug(indent)
             return s
     return SUITCmd
-
 
 class SUITCommand:
     def from_json(self, j):
@@ -522,6 +520,7 @@ def SUITMakeSeverableField(c):
         def to_debug(self, indent):
             return self.v.to_debug(indent)
     return SUITSeverableField
+
 # class SUITSequenceOrDigest()
 
 class SUITCommon(SUITManifestDict):
@@ -531,7 +530,6 @@ class SUITCommon(SUITManifestDict):
         # 'dependency_components' : ('dependency-components', 3, SUITBWrapField(SUITDependencies)),
         'common_sequence' : ('common-sequence', 4, SUITBWrapField(SUITSequenceComponentReset)),
     })
-
 
 class SUITManifest(SUITManifestDict):
     fields = SUITManifestDict.mkfields({
@@ -548,9 +546,10 @@ class SUITManifest(SUITManifestDict):
 
 class COSE_Algorithms(SUITKeyMap):
     rkeymap, keymap = SUITKeyMap.mkKeyMaps({
-        'ES256' : -7,
-        'ES384' : -35,
-        'ES512' : -36,
+        'ES256'   : -7,
+        'ES384'   : -35,
+        'ES512'   : -36,
+        'HSS-LMS' : -46,
     })
 
 class COSE_CritList(SUITManifestArray):

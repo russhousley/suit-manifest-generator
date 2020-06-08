@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # ----------------------------------------------------------------------------
 # Copyright 2019 ARM Limited or its affiliates
@@ -17,8 +17,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ----------------------------------------------------------------------------
+import os
 import cbor
 import json
+import pyhsslms
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
@@ -36,43 +38,90 @@ LOG = logging.getLogger(__name__)
 def main(options):
     # Read the manifest wrapper
     wrapper = cbor.loads(options.manifest.read())
-    private_key = ks.load_pem_private_key(options.private_key.read(), password=None, backend=default_backend())
 
-    digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
-    digest.update(cbor.dumps(wrapper[SUITWrapper.fields['manifest'].suit_key]))
+    # ES256 signature generation
+    if options.type == 'secp256r1':
+        private_key = ks.load_pem_private_key(options.private_key.read(), password=None, backend=default_backend())
 
-    cose_signature = COSE_Sign1().from_json({
-        'protected' : {
-            'alg' : 'ES256'
-        },
-        'unprotected' : {},
-        'payload' : {
-            'algorithm-id' : 'sha256',
-            'digest-bytes' : binascii.b2a_hex(digest.finalize())
-        }
-    })
+        digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
+        digest.update(cbor.dumps(wrapper[SUITWrapper.fields['manifest'].suit_key]))
 
-    Sig_structure = cbor.dumps([
-        "Signature1",
-        cose_signature.protected.to_suit(),
-        b'',
-        cose_signature.payload.to_suit(),
-    ], sort_keys = True)
-    sig_val = cbor.dumps(Sig_structure, sort_keys = True)
-    LOG.debug('Signing: {}'.format(binascii.b2a_hex(sig_val).decode('utf-8')))
+        cose_signature = COSE_Sign1().from_json({
+            'protected' : {
+                'alg' : 'ES256'
+            },
+            'unprotected' : {},
+            'payload' : {
+                'algorithm-id' : 'sha256',
+                'digest-bytes' : binascii.b2a_hex(digest.finalize())
+            }
+        })
 
+        Sig_structure = cbor.dumps([
+            "Signature1",
+            cose_signature.protected.to_suit(),
+            b'',
+            cose_signature.payload.to_suit(),
+        ], sort_keys = True)
+        sig_val = cbor.dumps(Sig_structure, sort_keys = True)
+        LOG.debug('Signing: {}'.format(binascii.b2a_hex(sig_val).decode('utf-8')))
 
-    ASN1_signature = private_key.sign(sig_val, ec.ECDSA(hashes.SHA256()))
-    r,s = asymmetric_utils.decode_dss_signature(ASN1_signature)
-    signature_bytes = r.to_bytes(256//8, byteorder='big') + s.to_bytes(256//8, byteorder='big')
+        ASN1_signature = private_key.sign(sig_val, ec.ECDSA(hashes.SHA256()))
+        r,s = asymmetric_utils.decode_dss_signature(ASN1_signature)
+        signature_bytes = r.to_bytes(256//8, byteorder='big') + s.to_bytes(256//8, byteorder='big')
 
-    cose_signature.signature = SUITBytes().from_suit(signature_bytes)
+        cose_signature.signature = SUITBytes().from_suit(signature_bytes)
 
-    auth = SUITBWrapField(COSEList)().from_json([{
-        'COSE_Sign1_Tagged' : cose_signature.to_json()
-    }])
+        auth = SUITBWrapField(COSEList)().from_json([{
+            'COSE_Sign1_Tagged' : cose_signature.to_json()
+        }])
 
-    wrapper[SUITWrapper.fields['auth'].suit_key] = auth.to_suit()
+        wrapper[SUITWrapper.fields['auth'].suit_key] = auth.to_suit()
+
+    # HSS-LMS signature generation
+    elif options.type == 'hss-lms':
+        options.private_key.close()
+        keyname = os.path.splitext(options.private_key.name)[0]
+        private_key = pyhsslms.HssLmsPrivateKey(keyname)
+
+        digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
+        digest.update(cbor.dumps(wrapper[SUITWrapper.fields['manifest'].suit_key]))
+
+        cose_signature = COSE_Sign1().from_json({
+            'protected' : {
+                'alg' : 'HSS-LMS'
+            },
+            'unprotected' : {
+                'kid' : binascii.b2a_hex(pyhsslms.HssLmsPublicKey(keyname).I())
+            },
+            'payload' : {
+                'algorithm-id' : 'sha256',
+                'digest-bytes' : binascii.b2a_hex(digest.finalize())
+            }
+        })
+
+        Sig_structure = cbor.dumps([
+            "Signature1",
+            cose_signature.protected.to_suit(),
+            b'',
+            cose_signature.payload.to_suit(),
+        ], sort_keys = True)
+        sig_val = cbor.dumps(Sig_structure, sort_keys = True)
+        LOG.debug('Signing: {}'.format(binascii.b2a_hex(sig_val).decode('utf-8')))
+
+        signature_bytes = private_key.sign(sig_val)
+        cose_signature.signature = SUITBytes().from_suit(signature_bytes)
+
+        auth = SUITBWrapField(COSEList)().from_json([{
+            'COSE_Sign1_Tagged' : cose_signature.to_json()
+        }])
+
+        wrapper[SUITWrapper.fields['auth'].suit_key] = auth.to_suit()
+
+    # Unsupported signature algorithm
+    else:
+        LOG.debug('Signing: Unsupported algorithm provided')
+        return 1
 
     options.output_file.write(cbor.dumps(wrapper, sort_keys=True))
     return 0

@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # ----------------------------------------------------------------------------
 # Copyright 2019-2020 ARM Limited or its affiliates
@@ -63,7 +63,8 @@ class MainArgumentParser(object):
 
         sign_parser.add_argument('-m', '--manifest', metavar='FILE', type=argparse.FileType('rb'), required=True)
         sign_parser.add_argument('-k', '--private-key', metavar='FILE', type=argparse.FileType('rb'), required=True)
-        sign_parser.add_argument('-i', '--key-id', metavar='ID', type=str)
+        sign_parser.add_argument('-i', '--key-id', metavar='ID', choices=['suit', 'suit-debug', 'json'], default='suit')
+        sign_parser.add_argument('-t', '--type', metavar='ALG', choices=['secp256r1', 'hss-lms'], default='secp256r1')
         sign_parser.add_argument('-o', '--output-file', metavar='FILE', type=argparse.FileType('wb'), required=True)
 
         parse_parser = subparsers.add_parser('parse', help='Parse a manifest')
@@ -71,9 +72,16 @@ class MainArgumentParser(object):
         parse_parser.add_argument('-m', '--manifest', metavar='FILE', type=argparse.FileType('rb'), required=True)
         parse_parser.add_argument('-j', '--json-output', default=False, action='store_true', dest='json')
 
-        get_uecc_pubkey_parser = subparsers.add_parser('pubkey', help='Get the public key for a supplied private key in uECC-compatible C definition.')
+        get_pubkey_parser = subparsers.add_parser('pubkey', help='Get the public key for a supplied private key.')
 
-        get_uecc_pubkey_parser.add_argument('-k', '--private-key', metavar='FILE', type=argparse.FileType('rb'), required=True)
+        get_pubkey_parser.add_argument('-k', '--private-key', metavar='FILE', type=argparse.FileType('rb'), required=True)
+        get_pubkey_parser.add_argument('-t', '--type', metavar='FILE', choices=['uecc', 'pem', 'der', 'c-hss-lms'], default='pem')
+        get_pubkey_parser.add_argument('-o', '--output-file', metavar='FILE', type=argparse.FileType('wb'), default=sys.stdout)
+
+        keygen_parser = subparsers.add_parser('keygen', help='Create a signing key. Not for production use!')
+
+        keygen_parser.add_argument('-k', '--private-key', metavar='FILE', type=argparse.FileType('wb'), required=True)
+        keygen_parser.add_argument('-t', '--type', metavar='ALG', choices=['secp256r1', 'hss-lms'], default='secp256r1')
 
         return parser
 

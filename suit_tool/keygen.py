@@ -17,22 +17,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ----------------------------------------------------------------------------
-import cbor
-import json
-import itertools
-import textwrap
-
-from suit_tool.manifest import SUITWrapper
+import os
+import pyhsslms
 
 def main(options):
-    # Read the manifest wrapper
-    decoded_cbor_wrapper = cbor.loads(options.manifest.read())
-    # print(decoded_cbor_wrapper)
-    wrapper = SUITWrapper().from_suit(decoded_cbor_wrapper)
-    if options.json:
-        print (json.dumps(wrapper.to_json(),indent=2))
+    # ES256 private key generation
+    if options.type == 'secp256r1':
+        pass
+
+    # HSS-LMS private key generation
+    elif options.type == 'hss-lms':
+        options.private_key.close()
+        os.remove(options.private_key.name)
+        keyname = os.path.splitext(options.private_key.name)[0]
+        _private_key = pyhsslms.HssLmsPrivateKey.genkey(keyname, levels=1)
+
+    # Unsupported signature algorithm
     else:
-        print ('\n'.join(itertools.chain.from_iterable(
-            [textwrap.wrap(t, 70) for t in wrapper.to_debug('').split('\n')]
-        )))
+        raise Exception('Unsupported signature algorithm')
+
     return 0
