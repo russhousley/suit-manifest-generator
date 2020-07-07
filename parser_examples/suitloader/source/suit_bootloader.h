@@ -34,6 +34,8 @@ typedef struct entrypoint_s {
 
 extern const uint8_t public_key[];
 extern const size_t public_key_size;
+extern const uint8_t hsslms_public_key[];
+extern const size_t hsslms_public_key_size;
 extern const uint8_t class_id[16];
 extern const uint8_t vendor_id[16];
 extern const entrypoint_t entrypoints [];

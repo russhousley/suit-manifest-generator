@@ -22,6 +22,7 @@
 // #include "mbedtls/md.h"     /* generic interface */
 #include "uecc/uECC.h"
 #include "mbed_application.h"
+#include "hss/hss.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -95,7 +96,6 @@ int suit_platform_verify_sha256(
     }
 }
 
-
 int suit_platform_verify_digest(int alg, const uint8_t *exp, size_t exp_len, const uint8_t *data, size_t data_len)
 {
     switch (alg) {
@@ -122,6 +122,24 @@ int ES256_verify(
     }
 }
 
+int HSSLMS_verify(
+                const uint8_t *msg, size_t msg_len,
+                const uint8_t *sig, size_t sig_len,
+                const uint8_t *pub, size_t pub_len)
+{
+    struct hss_extra_info temp_info = { 0 };
+    if (hss_validate_signature(
+                    (const unsigned char *) pub,
+                    (const void *) msg, msg_len,
+                    (const unsigned char *) sig, sig_len,
+                    &temp_info)) {
+        return CBOR_ERR_NONE;
+    }
+    else {
+        RETURN_ERROR(SUIT_ERR_SIG);
+    }
+}
+
 int COSEAuthVerify(
                 const uint8_t *msg, size_t msg_len,
                 const uint8_t *sig, size_t sig_len,
@@ -136,6 +154,18 @@ int COSEAuthVerify(
                 msg, msg_len,
                 sig, sig_len,
                 public_key, public_key_size);
+            break;
+        case COSE_HSSLMS:
+            if (kid_len != 16) {
+                RETURN_ERROR(SUIT_ERR_SIG);
+            }
+            if (memcmp(kid, &hsslms_public_key[12], kid_len) != 0) {
+                RETURN_ERROR(SUIT_ERR_SIG);
+            }
+            rc = HSSLMS_verify(
+                msg, msg_len,
+                sig, sig_len,
+                hsslms_public_key, hsslms_public_key_size);
             break;
         default:
             SET_ERROR(rc, CBOR_ERR_UNIMPLEMENTED);
