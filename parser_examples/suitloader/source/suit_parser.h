@@ -97,6 +97,7 @@
 #define COSE_HDR_ALG (1)
 #define COSE_HDR_KID (4)
 #define COSE_ES256 (-7)
+#define COSE_HSSLMS (-46)
 
 #define PRINT_ON_ERROR 0
 
