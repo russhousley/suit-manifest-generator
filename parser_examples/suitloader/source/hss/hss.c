@@ -6,7 +6,7 @@
  */
 #include <stdlib.h>
 #include <string.h>
-#include "common_defs.h"
+#include "hss_common_defs.h"
 #include "hss.h"
 #include "hss_hash.h"
 #include "hss_endian.h"
